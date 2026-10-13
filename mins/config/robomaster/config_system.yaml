@@ -1,0 +1,37 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster/config_system.yaml
+# PURPOSE  : general settings of a MINS replay: which bag to read, which results to write, message level.
+# ROLE     : "sys" block: output files (trajectory, computation times) and bag to replay.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+sys:
+  # Level of detail of the MINS messages (larger = more verbose).
+  verbosity: 2
+  # Records the computation times of each step; path_timing = output file (MINS_DIR is replaced at launch by the folder of the mins package).
+  save_timing: true
+  path_timing: "MINS_DIR/../../../../outputs/tmp/0.time"
+  # Records the full state of the filter (disabled, large files) in the folder path_state.
+  save_state: false
+  path_state: "MINS_DIR/../../../../outputs/tmp/0/"
+  # Records the estimated trajectory (time, position, quaternion, covariances) in path_trajectory (outputs/tmp/0.txt).
+  save_trajectory: true
+  path_trajectory: "MINS_DIR/../../../../outputs/tmp/0.txt"
+  # Also records the printed messages (disabled).
+  save_prints: false
+  # Experiment number: used to name the output files.
+  exp_id: 0
+
+  # Bag to replay. This path is a historical default value (the bag was deleted): scripts/tcam_try.py replaces it in a disposable copy of the configuration.
+  path_bag: "/home/ubuntu/mins_sandbox_ws/rosbags/rectangle_wheels_chassislead_v2_gyrofix_20260930.bag"
+  # Start of the reading in the bag (seconds from the start); bag_durr = processed duration (-1 = whole bag). Warning: bag_durr limits the PROCESSING but MINS still reads the whole file.
+  bag_start: 0
+  # Set back to -1 (whole bag): the replays are no longer truncated (the limit does not save reading time).
+  bag_durr: -1

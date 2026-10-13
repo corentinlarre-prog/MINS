@@ -1,0 +1,33 @@
+%YAML:1.0
+# No GNSS indoors. This is the channel that Carolus is meant to replace (request of the internship supervisor, 27/07/2026): not connected yet.
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster/config_gps.yaml
+# PURPOSE  : GNSS: DISABLED (no GPS indoors).
+# ROLE     : "gps" block: GNSS settings; enabled: false.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+gps:
+  enabled: false
+  max_n: 1
+  do_calib_ext: false
+  do_calib_dt: false
+  init_distance: 20.0
+  init_closed_form: true
+  init_cov_dt: 1e-3
+  init_cov_ex: 1e-1
+  init_cov_inflation: 2.0
+  chi2_mult: 9999
+  overwrite_noise: true
+  noise: 3.0
+
+gps0:
+  timeoffset: 0.0
+  pGinI: [-0.25, 0, 0]
+  topic: "/gps/fix"

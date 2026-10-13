@@ -1,0 +1,124 @@
+%YAML:1.0
+# RoboMaster S1: a SINGLE camera (the robot's), monocular, no stereo.
+# Intrinsics and distortion updated on 25/09/2026 with the real OpenCV calibration (plumb_bob) of carolus_node/config/robomaster_s1.yaml
+# (reprojection error 0.13 px). The camera-IMU extrinsic T_imu_cam does not come from Kalibr: it comes from the change of frame optical -> IMU,
+# from a sweep of the tilt (5° upwards) and from the translation measured with a ruler (see below and the project log of 02/10).
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster/config_camera.yaml
+# PURPOSE  : describe the S1 camera (intrinsics, camera-IMU extrinsic, point tracking) to the MINS filter.
+# ROLE     : "cam" block: point tracking and filter settings; "cam0" block: the camera itself (intrinsics, distortion, T_imu_cam).
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+cam:
+  # Camera used (false = camera off, used for the "wheels only" replays).
+  enabled: true
+  # Maximum number of cameras (a single one on the S1); use_stereo / stereo_pair: no stereo.
+  max_n: 1
+  use_stereo: false
+  stereo_pair: [0, 1]
+  # do_calib_ext/dt set back to false (2026-09-29, end of session): the
+  # dedicated calibration bags "robot in the air" are abandoned (no reliable
+  # convergence, cf. log). Back to the normal configuration to retest the
+  # rectangle with just the imu_thresh fix.
+  do_calib_ext: false
+  do_calib_int: false
+  do_calib_dt: false
+  # Number of points extracted and tracked in EACH image (strongly influences the computation time).
+  n_pts: 1500
+  # Threshold of the FAST corner detector; grid_x / grid_y: the image is cut into a grid to spread the points.
+  fast: 30
+  grid_x: 15
+  grid_y: 15
+  # Minimum distance (pixels) between two tracked points (after KLT tracking, points that are too close are removed).
+  min_px_dist: 15
+  # KNN ratio between the two best descriptor matches, required to accept a match.
+  knn: 0.65
+  # Halves the resolution of the images used for tracking (640x360 image instead of 1280x720).
+  downsample: true
+  # Pre-processing of the image histogram: NONE, HISTOGRAM or CLAHE.
+  histogram_method: "HISTOGRAM" # NONE, HISTOGRAM, CLAHE
+  # Maximum number of SLAM points (persistently estimated points): 0 = none. 25 was tried for camera + IMU without wheels, not for the real configuration.
+  max_slam: 0
+  # Maximum number of MSCKF points (points used then forgotten) per update.
+  max_msckf: 50
+  # Representation of the estimated 3D points (inverse depth in the global frame).
+  feat_rep: "GLOBAL_FULL_INVERSE_DEPTH"
+  # Initial covariances of the calibrations: time offset, orientation and position of the extrinsic (1e-4 = we trust T_imu_cam), focal lengths, optical centre, distortion.
+  init_cov_dt: 1e-4
+  # Set back to 1e-4 (2026-09-29, end of session): normal value, correct
+  # when do_calib_ext is disabled (T_imu_cam at identity, not yet
+  # calibrated -- cf. log for the history of the "robot in the air"
+  # calibration attempt, abandoned).
+  init_cov_ex_o: 1e-4
+  init_cov_ex_p: 1e-4
+  init_cov_in_k: 1e-2
+  init_cov_in_c: 1e-1
+  init_cov_in_r: 1e-6
+  # sigma_px 2 -> 6 (2026-09-30): the camera must weigh less than the wheels
+  # (with 2 the estimated scale was inflated by 1.6 to 3.5x).
+  sigma_px: 6
+  # Trial 2026-09-29: chi2_mult 1 -> 10 to try to make the camera
+  # measurements accepted during the T_imu_cam self-calibration (hypothesis: the
+  # displayed "Chi 100%" = almost total rejection due to a prior that is too wrong).
+  # NO measured effect -- trajectory identical to the digit with 1 or
+  # 10. The "Chi 100%" is therefore not a gating threshold problem;
+  # more probable cause: the feature tracks themselves are
+  # bad (motion too fast/blurred for ~8Hz of camera). Back to 1.
+  chi2_mult: 1
+
+  # Initialisation of the points (triangulation): minimum and maximum distance (m), maximum baseline and maximum condition number accepted.
+  # feature related
+  fi_min_dist: 0.25
+  fi_max_dist: 150
+  fi_max_baseline: 2000
+  fi_max_cond_number: 10000
+
+  # ==================================================================
+  # ==================================================================
+
+cam0:
+  # Camera-IMU time offset (s). The camera lags by ~60 ms (measured), but correcting this lag does NOT IMPROVE the results on the test bench.
+  timeoffset: 0.000
+  # History of 25/09/2026: a translation alone, measured with a ruler (camera relative to the geometric centre of the chassis, gimbal levelled by INIT:
+  # 7.5 cm forward, 0 cm lateral, 19 cm above, rotation left at identity), was tried on rectangle_run_20260925_v2.bag: the trajectory was IDENTICAL to that of the
+  # identity placeholder during the whole replay. The translation was therefore not the dominant error term: it was the rotation (the camera is on a gimbal
+  # that can move independently of the chassis that carries the IMU, and a rotation error corrupts a visual-inertial filter much more than a translation error).
+  # We went back to identity, then the real solution was found (see below). Kalibr + AprilGrid target (technical manual, chapter 8.4) were not done.
+  # 2026-09-30: old value = identity (wrong: the optical frame and the IMU
+  # frame differ by a rotation of 120 deg). New value = fixed rotation
+  # optical->FLU composed with a camera tilt of 8 deg upwards
+  # (horizon read on an image of the bag: line ~450/720, focal length 625 px),
+  # unmeasured translation set to 0 (the real one is ~0.1 to 0.2 m). Formula:
+  # M(theta) = [[0,-sin t,cos t],[-1,0,0],[0,-cos t,-sin t]], t = -8 deg.
+  # Validated in ATE on 3 runs (cf. log of 30/09).
+  # 2026-10-02: tilt 8 -> 5 deg upwards and measured translation
+  # (7.5 cm forward, 19 cm above the centre of the chassis, ruler of 25/09).
+  # Cause: 8 deg (read on the bottom of the wall, hence below the true horizon) gave a
+  # z drift of +1.4 m over 2 laps (clean chassis_lead bag); at 5 deg the z rms
+  # goes from 0.77 to 0.12 m (and from 0.30 to 0.10 m on a 2nd independent run).
+  # 2-lap closure ~0.4 m, like the wheels alone. To be used in
+  # chassis_lead mode (camera rigid with the chassis). M(theta) = [[0,-sin t,cos t],
+  # [-1,0,0],[0,-cos t,-sin t]], t = -5 deg.
+  # 4x4 camera -> IMU transform: 3x3 rotation (first 3 columns) then translation (m) in the last column. Valid in chassis_lead mode (camera rigid with the chassis).
+  T_imu_cam:
+    - [0.000000, 0.087156, 0.996195, 0.075]
+    - [-1.000000, 0.000000, 0.000000, 0.0]
+    - [0.000000, -0.996195, 0.087156, 0.19]
+    - [0.0, 0.0, 0.0, 1.0]
+  # radtan distortion coefficients (k1, k2, p1, p2) of the OpenCV calibration of 25/09 (reprojection error 0.13 px).
+  distortion_coeffs: [-0.1241, 0.1960, 0.0021, -0.0060]
+  # Distortion model: radial-tangential (OpenCV plumb_bob).
+  distortion_model: radtan
+  # Intrinsics [fx, fy, cx, cy] in pixels; same values as carolus_node/config/robomaster_s1.yaml.
+  intrinsics: [624.9162, 625.7021, 627.3638, 362.2931]
+  # Resolution of the raw image (width, height).
+  resolution: [1280, 720]
+  # ROS topic of the images (mono8 in the bags prepared by prep_bag.py).
+  topic: "/camera/color/image_raw"

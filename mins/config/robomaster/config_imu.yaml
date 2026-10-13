@@ -1,0 +1,36 @@
+%YAML:1.0
+# Measurements published by rm_master_node.py (chassis.sub_imu of the SDK, 50 Hz) on /imu/data.
+# Order of the fields and units assumed by analogy with sensor_msgs/Imu; check done: gravity reads ~9.8 m/s² on one axis with the robot flat and still,
+# and the gyro is already in rad/s (fix of 30/09). To be checked again before trusting the accuracy obtained.
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster/config_imu.yaml
+# PURPOSE  : describe the noise of the S1 chassis IMU (accelerometer and gyroscope) to the MINS filter.
+# ROLE     : "imu" block: white noises and bias random walks, and topic of the measurements (/imu/data published by rm_master_node at 50 Hz).
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+# The current values are the original MINS ones (generic); the Allan variance measured at rest is in the Technical Document and scripts/allan.py (lower values, too optimistic for a moving robot).
+imu:
+  # White noise of the accelerometer (density), original value.
+  accel_noise: 5.8860e-02  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  # Random walk of the accelerometer bias.
+  accel_bias: 1.0000e-02   # [ m / s^3 / sqrt(Hz) ].  ( accel bias diffusion )
+  # REAL gyro noise measured at rest on 2026-09-30 (gyro rescaled):
+  # standard deviation 0.041 to 0.053 rad/s at 50 Hz, i.e. 0.0057 to 0.0075 rad/s/sqrt(Hz),
+  # about 4x the value below. Tried with 7.5e-3 on the bag
+  # rectangle_slowturns_gyrofix: NO improvement (slightly better early on,
+  # 35 m against 47 m at 15 s, but 4191 m against 1238 m at 62 s and 23752 m against
+  # ~7590 m at 120 s). Divergence dominated by something else (vertical drift from
+  # the initialisation). Set back to the original value to keep a stable
+  # comparison base; to be tried again once this drift is understood.
+  gyro_noise: 1.7453e-03     # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  # Random walk of the gyroscope bias.
+  gyro_bias: 1.0000e-04       # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  # ROS topic of the IMU measurements.
+  topic: "/imu/data"
