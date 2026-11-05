@@ -1,0 +1,34 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_d455_chassis/config_init.yaml
+# PURPOSE  : set the INITIALISATION of MINS (estimation of gravity and biases while the robot is still).
+# ROLE     : "init" block: MINS waits for a still phase followed by a sharp jerk; a bag that starts in motion does not initialise.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_d455_chassis/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_d455_chassis/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+init:
+  # Duration (s) of the initialisation window: at least 2 x window_time = 4 s of data below the threshold is needed.
+  window_time: 2.0
+  # Threshold on the acceleration variance above which the robot is considered to be moving.
+  # It was 0.1 (tutorial value, D455 IMU): the S1 IMU, even when still, shows a variance of ~0.4 (the motors hold a slight tension
+  # at rest) and the static initialisation never passed (29/09, two failed attempts). Raised to 0.6: above the real noise at rest, clearly
+  # below the values measured in motion (2.5 to 4.0).
+  imu_thresh: 0.6
+  # Wheel regularity threshold for the initialisation.
+  imu_wheel_thresh: 0.1
+  # Initialisation with the IMU alone (disabled: the wheels are used too).
+  imu_only_init: true
+  # Requires the z axis of the IMU to be aligned with gravity at initialisation (robot placed flat).
+  imu_gravity_aligned: true
+  # Initialisation from a ground truth (not used); use_gt_gnss and use_gt_lidar: same for simulation tests.
+  use_gt: false
+  use_gt_gnss: false
+  use_gt_lidar: false
+  # Size of the initial covariance of the state.
+  cov_size: 1e-2

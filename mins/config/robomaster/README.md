@@ -1,0 +1,28 @@
+# MINS profiles of the RoboMaster S1
+
+Settings of MINS (camera + IMU + wheels) used with a DJI RoboMaster S1 driven by a Raspberry Pi 5.
+Each folder is a complete MINS profile (the 11 `config_*.yaml` files that MINS reads from `config.yaml`).
+Every file starts with a header (FILE, PURPOSE, ROLE, LOCATION, BUILD, RUN, TEST) and every setting that differs from the
+MINS default is commented. Code that records, replays and evaluates is in the project repository
+(`corentinlarre-prog/robomaster`, folder `scripts/`).
+
+| Folder (in `mins/config/`) | Robot / sensors | Notes |
+|---|---|---|
+| `robomaster/` | first robot: robot camera + robot IMU + wheels | gimbal in safe mode on this robot |
+| `robomaster_r3/` | Banku (third robot): robot camera + robot IMU + wheels | own camera intrinsics, camera tilt estimated online, mask of a cable in the field of view (`mask_cable.png`) |
+| `robomaster_d455/` | Intel D455 camera + D455 IMU, wheels off | D455 on the gimbal |
+| `robomaster_d455_wheels/` | D455 on the gimbal + wheels | `T_imu_wheel` valid only while the gimbal is aligned with the chassis |
+| `robomaster_d455_chassis/` | D455 mounted upside down on the chassis + wheels | `T_imu_wheel` computed for this mounting; `imu_only_init: true` |
+
+## Use
+
+```bash
+# copy a profile folder into the MINS workspace, then replay a recording (roscore running)
+cp -r mins/config/robomaster_r3 ~/mins_sandbox_ws/src/mins/mins/config/
+rosrun mins bag _config_path:=<folder>/config.yaml
+```
+
+Check at start-up that MINS prints no `unable to parse` or `invalid boolean` warning: the YAML reader (OpenCV) is
+fragile and a comment on the same line as a boolean makes the reading fail without stopping MINS.
+
+The tuning values of the D455 profiles are not validated (see the Technical Document, chapter on the D455).

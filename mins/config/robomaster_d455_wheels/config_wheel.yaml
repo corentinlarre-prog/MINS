@@ -1,0 +1,96 @@
+%YAML:1.0
+# Wheel odometry re-enabled on 29/09/2026 on Hector's explicit instruction (work with camera + IMU + wheels only, without the beacon, before
+# touching the accuracy of MINS with anything else). The finding of 31/07/2026 below remains a real, unresolved risk: it is only
+# accepted for this test, by driving the rectangle only forward and rotating, never with lateral translation (mecanum), so that the real motion
+# matches what a differential wheel model expects.
+#
+# Original note, kept: "Wheel odometry deliberately left disabled. The S1 is mecanum (holonomic) whereas the MINS wheel models
+# assume differential or Ackermann kinematics. Established by the research round of 31/07/2026: all the participants judged the gap
+# an asymmetric risk. To be taken up again only with a mecanum model."
+#
+# Data chain: /odom (rm_master_node.py) -> mins_sandbox_ws/scripts/odom_to_wheel_joint.py -> /wheel_joint_states (sensor_msgs/JointState), read by
+# the MINS UpdaterWheel through ROSHelper::JointState2Data (velocity[0] and velocity[1] by INDEX, not by name: matches the default order front_left,
+# front_right, rear_left, rear_right). Confirmed in mins/src/core/ROSHelper.cpp and mins/src/options/OptionsWheel.h.
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_d455_wheels/config_wheel.yaml
+# PURPOSE  : set the MINS wheel odometry model.
+# ROLE     : "wheel" block: MINS reads the wheels as /wheel_joint_states (wheel speeds) built by odom_to_wheel_joint.py from /odom.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_d455_wheels/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_d455_wheels/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+wheel:
+  # Re-enabled (2026-09-29, end of session): back to the rectangle test
+  # (camera+IMU+wheels) now that imu_thresh is fixed, to compare
+  # with the baseline of step 4 (2912m total distance / 660m final error).
+  # D455 + WHEELS PROFILE: wheels ENABLED. T_imu_wheel computed by scripts/d455_wheel_calc.py (gravity of a still bag, turret assumed aligned with the chassis, D455/chassis yaw assumed zero, wheel origin 8 cm below the robot IMU): valid only while the turret does not turn with respect to the chassis.
+  # In a turn the turret lags and the head rises, so the IMU -> wheels transformation then changes (see the Technical Document).
+  enabled: true
+  # 2026-09-30: Wheel2DCen -> Wheel3DAng. On the full lap (IMU + wheels,
+  # without camera), Wheel3DAng follows the SDK odom (5.5 m against 5.35 m at 60 s,
+  # z ~ 0, max 5.7 m) whereas Wheel2DCen drifts to 15856 m (z up to 1000 m)
+  # and Wheel3DCen/3DLin break away after ~30 s.
+  type: "Wheel3DAng" #  Wheel2DAng, Wheel2DLin, Wheel2DCen, Wheel3DAng, Wheel3DLin, Wheel3DCen
+  # Calibrations left disabled for the first reference trial (29/09), following the order recommended by the tutorial "MINS accuracy depending
+  # parameters": first tune the accuracy and the repeatability without calibration, only enable do_calib_ext (etc.) when it is stable, to extract
+  # a real value rather than chase a moving target.
+  # Online calibrations (time offset, extrinsic, intrinsic) disabled: we look for accuracy and repeatability first.
+  do_calib_dt: false
+  do_calib_ext: false
+  do_calib_int: false
+  # Trial 2026-09-29 (step 5): tightening noise_w/v/p and chi2_mult
+  # (more trust in the wheels, in the spirit of the "MINS
+  # accuracy depending parameters" tutorial) actually made the result WORSE --
+  # total distance 7705m and final error 6660m, against 2912m/660m with
+  # the original values below. Clear sign: the start of the trajectory
+  # stayed almost frozen at the origin instead of following the real
+  # motion. Confirms the reservation already noted: our /odom gives a
+  # COMMANDED speed, not measured by a real encoder (docstring
+  # of odom_to_wheel_joint.py) -- trusting it more degrades the
+  # filter instead of helping it, unlike the Limo case (encoder
+  # calibrated with Matlab) that the tutorial is based on. Back to the original values.
+  # (Trial 2026-09-30 with a huge noise to neutralise the wheels and see
+  # pure IMU propagation: numerically unstable filter, unusable.)
+  # 2026-09-30: wheel noises divided by 20 (original values 0.2 / 0.5 /
+  # 0.1). On 3 runs, IMU + wheels alone go from 0.55 / 1.09 / 2.57 m
+  # of ATE to 0.10 / 0.67 / 0.29 m. (The trial of 29/09 "more trust in the
+  # wheels = worse" had been made with the gyro 57x too small and the 2D model.)
+  # Noises of the wheel measurements: angular speed (noise_w), linear speed (noise_v) and planar motion constraint (noise_p). Original values (0.2 / 0.5 / 0.1) divided by 20.
+  noise_w: 0.01
+  noise_v: 0.025
+  noise_p: 0.005
+  # Initial covariances of the calibrations: time offset, orientation and position of the extrinsic, intrinsics (base and radii).
+  init_cov_dt: 1e-4
+  init_cov_ex_o: 1e-4
+  init_cov_ex_p: 1e-3
+  init_cov_in_b: 1e-3
+  init_cov_in_r: 1e-3
+  # Multiplier of the chi² test threshold: beyond it, a measurement is rejected as an outlier.
+  chi2_mult: 15
+  # Time offset between the wheels and the IMU (s).
+  timeoffset: 0.0
+  # [rl, rr, b] = left wheel radius, right wheel radius, track width (lateral
+  # wheelbase). Measured with a caliper / tape measure on the robot,
+  # 2026-09-29: rl = rr = 0.050 m, b = 0.200 m.
+  intrinsics: [0.050, 0.050, 0.200]
+  # Reuse of information: if true, MINS always creates a relative measurement between the oldest and the most recent clone.
+  reuse_of_information: false
+  # APPROXIMATE, not precisely measured (2026-09-29): the IMU (in the
+  # chassis, chassis.sub_imu of the SDK) is assumed to be ~8cm above the plane
+  # of contact of the wheels with the ground, no known forward/lateral offset.
+  # To be refined if the results are bad -- do_calib_ext could also
+  # correct this once the base accuracy is validated (see the plan of
+  # 2026-09-29 in the project log).
+  # 4x4 transform between the IMU and the wheel frame (rotation + translation in m).
+  T_imu_wheel:
+    - [0.000033, -0.999995, 0.003286, 0.027881]
+    - [0.000644, -0.003286, -0.999994, 0.332356]
+    - [1.000000, 0.000035, 0.000643, -0.019439]
+    - [0.0, 0.0, 0.0, 1.0]
+  # ROS topic of the wheel speeds (JointState); MINS reads velocity[0] and velocity[1] by INDEX, in the order front_left, front_right, rear_left, rear_right.
+  topic: "/wheel_joint_states"

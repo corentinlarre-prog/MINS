@@ -1,0 +1,69 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_d455/config_estimator.yaml
+# PURPOSE  : set the MINS estimation filter (sliding window, clone frequency, interpolation).
+# ROLE     : "est" block: general filter parameters; intr_ori / intr_pos tables: slopes of the polynomial interpolation error as a function of the clone frequency.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_d455/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_d455/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+est:
+  # Norm of gravity (m/s²); the S1 accelerometer reads ~9.88 at rest (test with 9.878: no effect).
+  gravity_mag: 9.81
+  # Clone creation frequency (Hz). 20 -> 10 on 29/09, then 10 -> 30 on 12/10: the tutorial "MINS accuracy depending parameters" recommends
+  # aligning clone_freq with the real camera frequency. Our camera went from 10 to 30 images/s (rm_master_node). Replay of the old bags at
+  # 10 images/s (clb, cli): IDENTICAL result with 10 and 30 (the camera sets the pace below clone_freq), so 30 does not change the old trials.
+  clone_freq: 30
+  # Size of the sliding window (s).
+  window_size: 1.0
+  # Order of the pose interpolation polynomial (1, 3, 5, 7 or 9).
+  intr_order: 3
+  # Multiplier of the interpolation error.
+  intr_error_mlt: 3
+  # Orientation (rad) and position (m) thresholds for dynamic cloning.
+  intr_error_ori_thr: 0.007
+  intr_error_pos_thr: 0.003
+  # Multiplier applied to these thresholds.
+  intr_error_thr_mlt: 0.5
+  # Extrapolation tolerated beyond the last measurement (s).
+  dt_extrapolation: 0.01
+
+  # Residuals computed with the IMU prediction; use_imu_cov / use_pol_cov: interpolation covariance (only one of the two true).
+  use_imu_res: true
+  use_imu_cov: false
+  use_pol_cov: true
+  # Dynamic cloning: a new clone is only created if the interpolation error exceeds the thresholds.
+  dynamic_cloning: true
+
+# Slope of the polynomial interpolation error of the pose as a function of the acceleration
+# order: 1 3 5 7 9
+# Tables of the interpolation error slopes (orientation then position) for the clone frequencies Hz_N; orders 1, 3, 5, 7, 9. Original MINS values.
+intr_ori:
+  Hz_4: [0.05040, 0.03465, 0.03303, 0.03510, 0.04842]
+  Hz_5: [0.03060, 0.01953, 0.01800, 0.01791, 0.02016]
+  Hz_6: [0.02349, 0.01359, 0.01224, 0.01179, 0.01224]
+  Hz_7: [0.01800, 0.00954, 0.00837, 0.00801, 0.00801]
+#  Hz_8: [0.00628, 0.00308, 0.00268, 0.00252, 0.00252]
+  Hz_9: [0.00464, 0.00220, 0.00188, 0.00184, 0.00184]
+  Hz_10: [0.00288, 0.00126, 0.00108, 0.00102, 0.00102]
+  Hz_15: [0.00138, 0.00066, 0.00063, 0.00069, 0.00087]
+  Hz_20: [0.00084, 0.00012, 0.00006, 0.00003, 0.00003]
+  Hz_25: [0.00051, 0.00012, 0.00009, 0.00009, 0.00009]
+  Hz_30: [0.00036, 0.00006, 0.00003, 0.00003, 0.00003]
+intr_pos:
+  Hz_4: [0.05463, 0.02493, 0.02160, 0.02079, 0.02124]
+  Hz_5: [0.03501, 0.01422, 0.01197, 0.01125, 0.01098]
+  Hz_6: [0.02538, 0.00936, 0.00792, 0.00765, 0.00765]
+  Hz_7: [0.01899, 0.00648, 0.00549, 0.00531, 0.00531]
+#  Hz_8: [0.00656, 0.00208, 0.00176, 0.00168, 0.00164]
+  Hz_9: [0.00524, 0.00100, 0.00088, 0.00084, 0.00084]
+  Hz_10: [0.00312, 0.00087, 0.00072, 0.00066, 0.00066]
+  Hz_15: [0.00144, 0.00021, 0.00018, 0.00015, 0.00015]
+  Hz_20: [0.00084, 0.00009, 0.00006, 0.00003, 0.00003]
+  Hz_25: [0.00054, 0.00006, 0.00003, 0.00003, 0.00003]
+  Hz_30: [0.00036, 0.00003, 0.00003, 0.00003, 0.00000]

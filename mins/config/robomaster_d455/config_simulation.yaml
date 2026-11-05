@@ -1,0 +1,41 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_d455/config_simulation.yaml
+# PURPOSE  : internal MINS simulator: NOT USED to replay real bags.
+# ROLE     : "sim" block: simulator settings (frequencies, noise, trajectories); no effect for a real bag; MINS example values.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_d455/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_d455/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+sim:
+  seed: 0
+  do_perturb: true
+  remove_noise: false
+  BSpline_path: "MINS_DATA_DIR/BSplineDataset/UD_Spencer.txt"
+  planes_path: "MINS_DATA_DIR/FloorPlans/UD_Spencer.txt"
+  const_holonomic: true
+  const_planar: false
+  freq_imu: 200.0
+  freq_cam: 30.0
+  freq_gps: 1.0
+  freq_wheel: 100.0
+  freq_vicon: 20.0
+  freq_lidar: 10.0
+  distance_threshold: 1.2
+  min_feature_gen_dist: 5
+  max_feature_gen_dist: 7
+#  T_WtoE:
+#    - [0.0,-1.0, 0.0, 0.0]
+#    - [1.0, 0.0, 0.0, 0.0]
+#    - [0.0, 0.0, 1.0, 0.0]
+#    - [0.0, 0.0, 0.0, 1.0]
+  T_WtoE:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
