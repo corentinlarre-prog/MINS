@@ -12,7 +12,7 @@ MINS default is commented. Code that records, replays and evaluates is in the pr
 | `robomaster_r3/` | Banku (third robot): robot camera + robot IMU + wheels | own camera intrinsics, camera tilt estimated online, mask of a cable in the field of view (`mask_cable.png`) |
 | `robomaster_d455/` | Intel D455 camera + D455 IMU, wheels off | D455 on the gimbal |
 | `robomaster_d455_wheels/` | D455 on the gimbal + wheels | `T_imu_wheel` valid only while the gimbal is aligned with the chassis |
-| `robomaster_d455_chassis/` | D455 mounted upside down on the chassis + wheels | `T_imu_wheel` computed for this mounting; `imu_only_init: true` |
+| `robomaster_d455_chassis/` | D455 mounted upside down on the chassis + wheels | `T_imu_wheel` computed for this mounting (recompute it for every recording); `imu_only_init: true`; `imu_thresh: 0.15` (see the comments of `config_init.yaml`) |
 
 ## Use
 

@@ -19,7 +19,12 @@ init:
   # It was 0.1 (tutorial value, D455 IMU): the S1 IMU, even when still, shows a variance of ~0.4 (the motors hold a slight tension
   # at rest) and the static initialisation never passed (29/09, two failed attempts). Raised to 0.6: above the real noise at rest, clearly
   # below the values measured in motion (2.5 to 4.0).
-  imu_thresh: 0.6
+  # 05/11/2026, D455 profile on the chassis: lowered to 0.15. With 0.6, MINS only starts when the motion starts (22 s after the start of the bag) and the first side is too long;
+  # with 0.15 it starts during the still phase at the beginning (8 s), the farthest point goes from 8.4 m to 7.3 m (true: 7.36 m). Confirmed on 2 two-lap runs (D455 on the chassis).
+  # 06/11/2026, 2nd run (rect6, return 3 cm): with 0.15 MINS NEVER starts (the chassis vibration at rest, ~20.7 Hz, gives a variance of 0.45 from the start);
+  # it starts at 4.2 s with 0.45, 5.7 s with 0.5, 9.0 s with 0.6, nothing with 0.2 to 0.4. On rect5 (05/11): it starts up to 0.4 (18.7 s) but too late with 0.45 and 0.6 (22.4 s, wrong farthest point).
+  # Cause found on 06/11: the web page published zero /cmd_vel at 10 Hz and the node sent them with drive_speed(0,0,0), which made the chassis vibrate on the floor. Fixed in rm_master_node.py (zero command -> drive_wheels): to be validated on the next recording with 0.15. For a bag RECORDED BEFORE the fix: set the threshold just above the value "above threshold X" printed in the log. Value left at 0.15.
+  imu_thresh: 0.15
   # Wheel regularity threshold for the initialisation.
   imu_wheel_thresh: 0.1
   # Initialisation with the IMU alone (disabled: the wheels are used too).
