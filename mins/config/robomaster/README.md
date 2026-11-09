@@ -26,4 +26,11 @@ rosrun mins bag _config_path:=<folder>/config.yaml
 Check at start-up that MINS prints no `unable to parse` or `invalid boolean` warning: the YAML reader (OpenCV) is
 fragile and a comment on the same line as a boolean makes the reading fail without stopping MINS.
 
+## Live mode under ROS 1
+
+`mins/src/run_subscribe.cpp` now has a ROS 1 branch (it used to exit immediately without ROS 2): the node `subscribe` reads the live topics of the profile (IMU, camera, wheels) instead of a bag.
+Build with `catkin build mins` (only the `subscribe` executable changes), run with `rosrun mins subscribe _config_path:=<folder>/config.yaml`; see `scripts/live_run.py` in the
+robomaster repository (`corentinlarre-prog/robomaster`) for a script that copies a profile, starts the node on the robot or on a bag played in real time, and summarises the trajectory.
+At one core and 1.5 GHz the node drops part of the camera updates (the subscriber queue is 10 images) but keeps up with real time.
+
 The tuning values of the D455 profiles are not validated (see the Technical Document, chapter on the D455).
