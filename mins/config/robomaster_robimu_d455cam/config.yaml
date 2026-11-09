@@ -1,0 +1,25 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/config.yaml
+# PURPOSE  : MINS entry file for the RoboMaster S1: lists the settings files of each sensor and of the filter.
+# ROLE     : MINS reads this file (option _config_path) then loads each file listed below, located in the same folder.
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/).
+# BUILD    : none (file read when MINS starts). WARNING: the MINS YAML reader (OpenCV) is fragile: a comment
+#            on the SAME LINE as a boolean makes the reading fail ("invalid boolean type") without stopping MINS: put the comments on separate lines.
+# RUN      : MINS replays a bag with the full profile: rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running);
+#            the trials go through scripts/tcam_try.py which works on a disposable copy of this folder.
+# TEST     : at startup MINS prints all the parameters read: check that no "unable to parse" warning appears
+#            (grep -c 'invalid boolean\|unable to parse' <log>) and that the printed values are those of this file.
+# ==============================================================================
+# Settings files loaded (one per block of the system): system, simulation (unused for a real bag), estimator, camera, GPS, IMU, lidar, Vicon, wheels, initialisation.
+config_system: "config_system.yaml"
+config_simulation: "config_simulation.yaml"
+config_estimator: "config_estimator.yaml"
+config_camera: "config_camera.yaml"
+config_gps: "config_gps.yaml"
+config_imu: "config_imu.yaml"
+config_lidar: "config_lidar.yaml"
+config_vicon: "config_vicon.yaml"
+config_wheel: "config_wheel.yaml"
+config_init: "config_init.yaml"

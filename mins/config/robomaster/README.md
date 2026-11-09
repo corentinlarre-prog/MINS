@@ -13,6 +13,7 @@ MINS default is commented. Code that records, replays and evaluates is in the pr
 | `robomaster_d455/` | Intel D455 camera + D455 IMU, wheels off | D455 on the gimbal |
 | `robomaster_d455_wheels/` | D455 on the gimbal + wheels | `T_imu_wheel` valid only while the gimbal is aligned with the chassis |
 | `robomaster_d455_chassis/` | D455 mounted upside down on the chassis + wheels | `T_imu_wheel` computed for this mounting (recompute it for every recording); `imu_only_init: true`; `imu_thresh: 0.15` (see the comments of `config_init.yaml`) |
+| `robomaster_robimu_d455cam/` | ROBOT IMU (`/imu/data`, 50 Hz) + D455 camera mounted upside down on the chassis + wheels | the `T_imu_cam` in the file is a placeholder: compute the real one and the clock offset for every recording with `scripts/robimu_d455cam_calc.py` of the project repository, then replay with `scripts/d455_replay.py` (`PROFILE=robomaster_robimu_d455cam T_IMU_CAM=...`); the other files are those of `robomaster_r3/` |
 
 ## Use
 

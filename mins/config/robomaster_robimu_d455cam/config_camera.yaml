@@ -1,0 +1,75 @@
+%YAML:1.0
+
+# ==============================================================================
+# FILE     : mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/config_camera.yaml
+# PURPOSE  : describe the Intel RealSense D455 camera, mounted upside down on the chassis, to MINS when the IMU is the one of the ROBOT
+#            (topic /imu/data, 50 Hz) and the wheels are used: variant "robot IMU + D455 camera + wheels" requested by the project supervisor on 09/11/2026.
+# ROLE     : "cam" block: settings of the point tracking and of the filter; "cam0" block: the camera (intrinsics, distortion, T_imu_cam).
+# LOCATION : ~/pi4/mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/ (inside the container: /home/ubuntu/mins_sandbox_ws/src/mins/mins/config/robomaster_robimu_d455cam/).
+# BUILD    : none (file read when MINS starts). The MINS YAML reader is fragile: never put a comment on the SAME line as a boolean.
+# RUN      : rosrun mins bag _config_path:=<folder>/config.yaml (inside the container, roscore running), or scripts/d455_replay.py.
+# TEST     : at start-up MINS prints the parameters read: grep -c 'invalid boolean\|unable to parse' <log> must be 0.
+# STATUS   : the T_imu_cam below is only a PLACEHOLDER (copy of the factory D455 camera-to-D455-IMU transform, WRONG for this profile): for every recording
+#            compute the real one (pose of the D455 lens in the frame of the robot IMU, tilt from gravity, plus the clock offset between the two IMUs) with
+#            scripts/robimu_d455cam_calc.py, then replay with scripts/d455_replay.py PROFILE=robomaster_robimu_d455cam T_IMU_CAM=<12 numbers> (and the printed timeoffset).
+# ==============================================================================
+cam:
+  enabled: true
+  max_n: 1
+  use_stereo: false
+  stereo_pair: [0, 1]
+  # Online calibrations switched off for the first test (the extrinsic comes from the factory calibration below).
+  do_calib_ext: false
+  do_calib_int: false
+  do_calib_dt: false
+  # Point tracking settings: values of the EuRoC profile supplied with MINS (752x480 images, 20 Hz), close to the D455 in 640x480; n_pts and max_slam
+  # are kept low so as not to load the Pi. 640x480 image: no halving (downsample false).
+  n_pts: 300
+  fast: 20
+  grid_x: 20
+  grid_y: 20
+  min_px_dist: 15
+  knn: 0.70
+  downsample: false
+  histogram_method: "HISTOGRAM"
+  max_slam: 0
+  max_msckf: 50
+  feat_rep: "GLOBAL_FULL_INVERSE_DEPTH"
+  # Initial covariances: values of the EuRoC profile (factory extrinsic, hence tight).
+  init_cov_dt: 1e-4
+  init_cov_ex_o: 1e-4
+  init_cov_ex_p: 1e-4
+  init_cov_in_k: 1e-1
+  init_cov_in_c: 1e-1
+  init_cov_in_r: 1e-5
+  # Pixel measurement noise: 6, as for the robot camera (the camera weighs less than the wheels).
+  sigma_px: 6
+  chi2_mult: 1
+  fi_min_dist: 0.25
+  fi_max_dist: 150
+  fi_max_baseline: 2000
+  fi_max_cond_number: 10000
+
+cam0:
+  # Camera-IMU time offset (MINS convention: t_imu = t_cam + timeoffset). Here the camera has the hardware time stamp of the D455 and the IMU the arrival time at the robot node:
+  # the replay script takes the value printed by scripts/robimu_d455cam_calc.py (the robot IMU is about 30 ms late); 0 in this file.
+  timeoffset: 0.000
+  # PLACEHOLDER (see STATUS above). Format: 4x4 camera -> IMU transformation (rotation, then position of the camera in the IMU frame, m). The values below were computed by scripts/d455_profile_calc.py from the
+  # calibration read in the camera (d455/calib_<serial>_640x480.yaml: IMU -> colour, inverted here). Rotation about the identity (0.36 deg), translation 2.9 / 0.7 / 1.6 cm.
+  # WARNING: the camera printed "IMU extrinsic table not found; using CAD values": these extrinsics are those of the DESIGN, not measured on this unit.
+  # Frame of the D455 IMU checked on the robot: x right, y down, z forward (same frame as the optical camera).
+  T_imu_cam:
+    - [1.000000, 0.000482, -0.000201, 0.028950]
+    - [-0.000483, 0.999980, -0.006298, 0.007381]
+    - [0.000198, 0.006298, 0.999980, 0.015773]
+    - [0.0, 0.0, 0.0, 1.0]
+  # Distortion: the D455 gives 5 "inverse_brown_conrady" coefficients (undistorted <- distorted, according to librealsense) whereas MINS wants radtan (distorted <- undistorted):
+  # radtan coefficients fitted by least squares over the whole field (max residual 0.95 px, rms 0.10 px). Copying the first 4 coefficients as they are would give 7.9 px of error.
+  # Total distortion in the field: <= 4.9 px. Factory values, no chessboard calibration was redone for the D455.
+  distortion_coeffs: [0.047767, -0.036929, 0.000477, 0.000279]
+  distortion_model: radtan
+  # Intrinsics [fx, fy, cx, cy] read in the camera for colour 640x480.
+  intrinsics: [382.5507, 381.6715, 318.1677, 246.1588]
+  resolution: [640, 480]
+  topic: "/d455/image_raw"
+  use_mask: false
